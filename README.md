@@ -1,5 +1,5 @@
-**Nain - Local AI Desktop Assistant
-**
+**Nain - Local AI Desktop Assistant**
+
 Nain is a local AI desktop assistant that uses a language model running through LM Studio to understand natural-language commands and interact with Windows applications.
 
 The project started as a simple local AI assistant and is gradually evolving into a more capable Windows automation system.
