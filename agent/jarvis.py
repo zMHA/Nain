@@ -13,7 +13,9 @@ from config import (
 
 from tools.system import (
     open_application,
-    close_application
+    close_application,
+    list_applications,
+    list_system_utilities
 )
 
 from tools.files import (
@@ -70,16 +72,23 @@ class Jarvis:
 
             with urllib.request.urlopen(
                 request,
-                timeout=60
+                timeout=180
             ) as response:
 
-                raw_response = response.read().decode("utf-8")
+                raw_response = (
+                    response
+                    .read()
+                    .decode("utf-8")
+                )
 
                 result = json.loads(raw_response)
 
             message = result["choices"][0]["message"]
 
-            content = message.get("content", "")
+            content = message.get(
+                "content",
+                ""
+            )
 
             if content is None:
                 content = ""
@@ -88,11 +97,16 @@ class Jarvis:
 
         except urllib.error.URLError as e:
 
-            return f"LM Studio connection error: {e}"
+            return (
+                f"LM Studio connection error: {e}"
+            )
 
         except TimeoutError:
 
-            return "Model error: LM Studio request timed out."
+            return (
+                "Model error: "
+                "LM Studio request timed out."
+            )
 
         except Exception as e:
 
@@ -113,10 +127,17 @@ class Jarvis:
 
         try:
 
-            data = json.loads(text.strip())
+            data = json.loads(
+                text.strip()
+            )
 
-            if isinstance(data, dict) and "tool" in data:
-                return data
+            if isinstance(data, dict):
+
+                if "tool" in data:
+                    return data
+
+                if "tools" in data:
+                    return data
 
         except json.JSONDecodeError:
             pass
@@ -135,20 +156,27 @@ class Jarvis:
 
             try:
 
-                data = json.loads(match.group(1))
+                data = json.loads(
+                    match.group(1)
+                )
 
-                if isinstance(data, dict) and "tool" in data:
-                    return data
+                if isinstance(data, dict):
+
+                    if "tool" in data:
+                        return data
+
+                    if "tools" in data:
+                        return data
 
             except json.JSONDecodeError:
                 pass
 
         # ------------------------------------------------------
-        # JSON somewhere inside response
+        # Single-tool JSON somewhere in response
         # ------------------------------------------------------
 
         match = re.search(
-            r'\{\s*"tool"\s*:\s*"[^"]+"\s*,\s*"arguments"\s*:\s*\{.*?\}\s*\}',
+            r'\{.*?"tool"\s*:\s*".*?".*?\}',
             text,
             re.DOTALL
         )
@@ -157,9 +185,41 @@ class Jarvis:
 
             try:
 
-                data = json.loads(match.group(0))
+                data = json.loads(
+                    match.group(0)
+                )
 
-                if isinstance(data, dict) and "tool" in data:
+                if (
+                    isinstance(data, dict)
+                    and "tool" in data
+                ):
+                    return data
+
+            except json.JSONDecodeError:
+                pass
+
+        # ------------------------------------------------------
+        # Multi-tool JSON somewhere in response
+        # ------------------------------------------------------
+
+        match = re.search(
+            r'\{.*?"tools"\s*:\s*\[.*?\].*\}',
+            text,
+            re.DOTALL
+        )
+
+        if match:
+
+            try:
+
+                data = json.loads(
+                    match.group(0)
+                )
+
+                if (
+                    isinstance(data, dict)
+                    and "tools" in data
+                ):
                     return data
 
             except json.JSONDecodeError:
@@ -173,7 +233,9 @@ class Jarvis:
 
     def execute_tool(self, tool_data):
 
-        tool = tool_data.get("tool")
+        tool = tool_data.get(
+            "tool"
+        )
 
         arguments = tool_data.get(
             "arguments",
@@ -189,8 +251,12 @@ class Jarvis:
             if tool == "open_application":
 
                 return open_application(
-                    arguments.get("name", "")
+                    arguments.get(
+                        "name",
+                        ""
+                    )
                 )
+
             # --------------------------------------------------
             # CLOSE APPLICATION
             # --------------------------------------------------
@@ -198,8 +264,28 @@ class Jarvis:
             elif tool == "close_application":
 
                 return close_application(
-                    arguments.get("name", "")
+                    arguments.get(
+                        "name",
+                        ""
+                    )
                 )
+
+            # --------------------------------------------------
+            # LIST APPLICATIONS
+            # --------------------------------------------------
+
+            elif tool == "list_applications":
+
+                return list_applications()
+
+            # --------------------------------------------------
+            # LIST SYSTEM UTILITIES
+            # --------------------------------------------------
+
+            elif tool == "list_system_utilities":
+
+                return list_system_utilities()
+
             # --------------------------------------------------
             # LIST FILES
             # --------------------------------------------------
@@ -207,7 +293,10 @@ class Jarvis:
             elif tool == "list_files":
 
                 return list_files(
-                    arguments.get("path", "")
+                    arguments.get(
+                        "path",
+                        ""
+                    )
                 )
 
             # --------------------------------------------------
@@ -217,7 +306,10 @@ class Jarvis:
             elif tool == "read_file":
 
                 return read_file(
-                    arguments.get("path", "")
+                    arguments.get(
+                        "path",
+                        ""
+                    )
                 )
 
             # --------------------------------------------------
@@ -227,8 +319,14 @@ class Jarvis:
             elif tool == "create_file":
 
                 return create_file(
-                    arguments.get("path", ""),
-                    arguments.get("content", "")
+                    arguments.get(
+                        "path",
+                        ""
+                    ),
+                    arguments.get(
+                        "content",
+                        ""
+                    )
                 )
 
             # --------------------------------------------------
@@ -238,8 +336,14 @@ class Jarvis:
             elif tool == "edit_file":
 
                 return edit_file(
-                    arguments.get("path", ""),
-                    arguments.get("content", "")
+                    arguments.get(
+                        "path",
+                        ""
+                    ),
+                    arguments.get(
+                        "content",
+                        ""
+                    )
                 )
 
             # --------------------------------------------------
@@ -249,9 +353,18 @@ class Jarvis:
             elif tool == "search_files":
 
                 return search_files(
-                    arguments.get("path", ""),
-                    arguments.get("pattern", "*"),
-                    arguments.get("recursive", False)
+                    arguments.get(
+                        "path",
+                        ""
+                    ),
+                    arguments.get(
+                        "pattern",
+                        "*"
+                    ),
+                    arguments.get(
+                        "recursive",
+                        False
+                    )
                 )
 
             # --------------------------------------------------
@@ -261,8 +374,14 @@ class Jarvis:
             elif tool == "copy_file":
 
                 return copy_file(
-                    arguments.get("source", ""),
-                    arguments.get("destination", "")
+                    arguments.get(
+                        "source",
+                        ""
+                    ),
+                    arguments.get(
+                        "destination",
+                        ""
+                    )
                 )
 
             # --------------------------------------------------
@@ -272,8 +391,14 @@ class Jarvis:
             elif tool == "move_file":
 
                 return move_file(
-                    arguments.get("source", ""),
-                    arguments.get("destination", "")
+                    arguments.get(
+                        "source",
+                        ""
+                    ),
+                    arguments.get(
+                        "destination",
+                        ""
+                    )
                 )
 
             # --------------------------------------------------
@@ -283,8 +408,14 @@ class Jarvis:
             elif tool == "rename_file":
 
                 return rename_file(
-                    arguments.get("path", ""),
-                    arguments.get("new_name", "")
+                    arguments.get(
+                        "path",
+                        ""
+                    ),
+                    arguments.get(
+                        "new_name",
+                        ""
+                    )
                 )
 
             # --------------------------------------------------
@@ -294,7 +425,10 @@ class Jarvis:
             elif tool == "delete_file":
 
                 return delete_file(
-                    arguments.get("path", "")
+                    arguments.get(
+                        "path",
+                        ""
+                    )
                 )
 
             # --------------------------------------------------
@@ -304,7 +438,10 @@ class Jarvis:
             elif tool == "run_command":
 
                 return run_command(
-                    arguments.get("command", "")
+                    arguments.get(
+                        "command",
+                        ""
+                    )
                 )
 
             # --------------------------------------------------
@@ -317,7 +454,9 @@ class Jarvis:
 
         except Exception as e:
 
-            return f"Tool execution error: {e}"
+            return (
+                f"Tool execution error: {e}"
+            )
 
     # ==========================================================
     # PROCESS USER REQUEST
@@ -325,10 +464,12 @@ class Jarvis:
 
     def process(self, user_input):
 
-        self.messages.append({
-            "role": "user",
-            "content": user_input
-        })
+        self.messages.append(
+            {
+                "role": "user",
+                "content": user_input
+            }
+        )
 
         # ------------------------------------------------------
         # Ask Qwen
@@ -356,7 +497,9 @@ class Jarvis:
         # Parse tool request
         # ------------------------------------------------------
 
-        tool_data = self.parse_tool(response)
+        tool_data = self.parse_tool(
+            response
+        )
 
         # ------------------------------------------------------
         # Normal answer
@@ -364,16 +507,90 @@ class Jarvis:
 
         if not tool_data:
 
-            self.messages.append({
-                "role": "assistant",
-                "content": response
-            })
+            self.messages.append(
+                {
+                    "role": "assistant",
+                    "content": response
+                }
+            )
 
             return response
 
         # ------------------------------------------------------
-        # Tool requested
+        # Store assistant request
         # ------------------------------------------------------
+
+        self.messages.append(
+            {
+                "role": "assistant",
+                "content": response
+            }
+        )
+
+        # ======================================================
+        # MULTIPLE TOOLS
+        # ======================================================
+
+        if "tools" in tool_data:
+
+            tool_requests = tool_data.get(
+                "tools",
+                []
+            )
+
+            if not isinstance(
+                tool_requests,
+                list
+            ):
+
+                return (
+                    "Invalid multi-tool request."
+                )
+
+            results = []
+
+            for tool_request in tool_requests:
+
+                if not isinstance(
+                    tool_request,
+                    dict
+                ):
+                    continue
+
+                tool_name = tool_request.get(
+                    "tool",
+                    "unknown"
+                )
+
+                print(
+                    f"\n[Tool requested: {tool_name}]"
+                )
+
+                result = self.execute_tool(
+                    tool_request
+                )
+
+                print(
+                    "[Tool execution completed]"
+                )
+
+                results.append(
+                    str(result)
+                )
+
+            if not results:
+
+                return (
+                    "No valid tools were requested."
+                )
+
+            return "\n".join(
+                results
+            )
+
+        # ======================================================
+        # SINGLE TOOL
+        # ======================================================
 
         tool_name = tool_data.get(
             "tool",
@@ -401,34 +618,39 @@ class Jarvis:
         )
 
         # ------------------------------------------------------
-        # Store assistant request
-        # ------------------------------------------------------
-
-        self.messages.append({
-            "role": "assistant",
-            "content": response
-        })
-
-        # ------------------------------------------------------
-        # For operations that are already complete,
-        # return the actual tool result directly.
-        #
-        # This prevents unnecessary second model calls.
+        # Direct result tools
         # ------------------------------------------------------
 
         direct_result_tools = [
+
             "open_application",
+
             "close_application",
+
+            "list_applications",
+
+            "list_system_utilities",
+
             "create_file",
+
             "edit_file",
+
             "copy_file",
+
             "move_file",
+
             "rename_file",
+
             "delete_file",
+
             "list_files",
+
             "search_files",
+
             "read_file",
+
             "run_command"
+
         ]
 
         if tool_name in direct_result_tools:
@@ -439,13 +661,15 @@ class Jarvis:
         # Fallback for unknown/future tools
         # ------------------------------------------------------
 
-        self.messages.append({
-            "role": "user",
-            "content": (
-                "TOOL RESULT:\n"
-                + str(result)
-            )
-        })
+        self.messages.append(
+            {
+                "role": "user",
+                "content": (
+                    "TOOL RESULT:\n"
+                    + str(result)
+                )
+            }
+        )
 
         return result
 
