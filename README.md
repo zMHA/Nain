@@ -1,37 +1,361 @@
-# Jarvis v0.1
+**Nain - Local AI Desktop Assistant**
 
-Local, text-based Windows AI assistant.
+Nain is a local AI desktop assistant that uses a language model running through LM Studio to understand natural-language commands and interact with Windows applications.
 
-## Requirements
+The project started as a simple local AI assistant and is gradually evolving into a more capable Windows automation system.
 
-- Windows
-- Python 3.10+
-- LM Studio
-- Qwen2.5-Coder-7B-Instruct Q4_K_M loaded in LM Studio
-- LM Studio local server on port 1234
+Current status: Active development
+Model backend: LM Studio
+Current model: Qwen2.5-Coder-7B-Instruct
 
-## Start
+Features
+🤖 Local AI
 
-Open CMD:
+Nain uses a locally running language model through LM Studio.
 
-    cd /d C:\Users\zMHA\Desktop\JarvisSystem
-    venv\Scripts\activate
+Local inference through LM Studio
+OpenAI-compatible API
+Natural-language interaction
+Tool-based action execution
+Configurable model, temperature, and token limits
+No cloud LLM API is required for the core assistant
+🖥️ Windows Application Control
 
-Make sure LM Studio's local server is running, then:
+Nain can discover and control Windows applications without requiring every application to be manually added to a configuration file.
 
-    python main.py
+The Windows Start Menu is used as the primary source of application discovery, with Windows PATH used as a fallback.
 
-## Test
+Open applications
 
-    hello Jarvis
-    what is 25 * 4?
-    list the files in C:\Users\zMHA\Desktop
-    open Chrome
+Examples:
 
-Terminal commands always require confirmation.
+open Chrome
+open Word
+open Excel
+open Task Manager
+open VS Code
 
-## Architecture
+Nain also understands common application aliases:
 
-Python owns the tool execution loop. The local Qwen model decides whether a tool is needed, and Python performs the actual action.
+open vs code
+open vscode
+open code
 
-This intentionally does NOT depend on Open Interpreter.
+These are resolved to:
+
+Visual Studio Code
+Close applications
+
+Examples:
+
+close Chrome
+close Word
+close Excel
+close VS Code
+close Task Manager
+🔀 Multi-Action Commands
+
+Nain can execute multiple independent actions from a single natural-language command.
+
+For example:
+
+open Word and Excel
+
+or:
+
+open Chrome and Task Manager
+
+It can also process multiple closing actions:
+
+close Word and Excel
+
+The model produces multiple tool calls and Nain executes them in the requested order.
+
+📋 Application Discovery
+
+Nain can discover applications installed through the Windows Start Menu.
+
+Example:
+
+list applications
+
+It can return applications such as:
+
+Google Chrome
+Microsoft Edge
+Visual Studio Code
+Microsoft Word
+Microsoft Excel
+PowerPoint
+LM Studio
+Notepad
+...
+
+This means applications do not need to be manually registered one by one.
+
+⚙️ Windows System Utilities
+
+Nain can also discover Windows system utilities separately.
+
+Example:
+
+list system utilities
+
+Examples include:
+
+Task Manager
+Command Prompt
+PowerShell
+Registry Editor
+Control Panel
+Resource Monitor
+Event Viewer
+Services
+System Information
+Task Scheduler
+...
+
+This separation keeps normal applications and Windows utilities organized.
+
+🧠 Tool-Based Architecture
+
+Nain does not simply generate text responses.
+
+When an action is required, the language model generates a structured tool request.
+
+Single action
+{
+  "tool": "open_application",
+  "arguments": {
+    "name": "Chrome"
+  }
+}
+Multiple actions
+{
+  "tools": [
+    {
+      "tool": "open_application",
+      "arguments": {
+        "name": "Chrome"
+      }
+    },
+    {
+      "tool": "open_application",
+      "arguments": {
+        "name": "Visual Studio Code"
+      }
+    }
+  ]
+}
+
+Nain then executes the requested tools locally.
+
+🏗️ Project Structure
+JarvisSystem/
+│
+├── main.py
+├── config.py
+│
+├── agent/
+│   └── jarvis.py
+│
+├── tools/
+│   ├── system.py
+│   ├── files.py
+│   └── terminal.py
+│
+└── venv/
+Main components
+
+main.py
+
+Starts the Nain assistant and provides the interactive command-line interface.
+
+config.py
+
+Contains LM Studio configuration and the system prompt that defines Nain's behavior and available tools.
+
+agent/jarvis.py
+
+Handles communication with the language model, tool parsing, and tool execution.
+
+tools/system.py
+
+Provides Windows application discovery, application launching, application closing, application aliases, and Windows system utility discovery.
+
+tools/files.py
+
+Provides file-related functionality and is currently part of the project's expanding tool system.
+
+tools/terminal.py
+
+Provides terminal-related functionality.
+
+💻 Current Environment
+
+The current development environment uses:
+
+Windows
+Python
+LM Studio
+Qwen2.5-Coder-7B-Instruct
+PowerShell / Windows Terminal
+Python virtual environment
+
+Current LM Studio endpoint:
+
+http://localhost:1234/v1/chat/completions
+🚀 Running Nain
+
+Clone the repository:
+
+git clone YOUR_REPOSITORY_URL
+cd JarvisSystem
+
+Create a virtual environment:
+
+python -m venv venv
+
+Install the required dependencies:
+
+pip install -r requirements.txt
+
+Start LM Studio and load the configured model.
+
+Then run:
+
+.\venv\Scripts\python.exe main.py
+
+You should see:
+
+Model: qwen2.5-coder-7b-instruct
+Backend: LM Studio (localhost:1234)
+Type 'exit' or 'quit' to close.
+🧪 Example Interaction
+You: open vs code
+
+[Tool requested: open_application]
+[Tool execution completed]
+
+Nain: Visual Studio Code opened successfully.
+
+Multiple applications:
+
+You: open notepad and task manager
+
+[Tool requested: open_application]
+[Tool execution completed]
+
+[Tool requested: open_application]
+[Tool execution completed]
+
+Nain: Notepad opened successfully.
+Task Manager opened successfully.
+
+Multiple closing actions:
+
+You: close task manager and notepad
+
+[Tool requested: close_application]
+[Tool execution completed]
+
+[Tool requested: close_application]
+[Tool execution completed]
+
+Nain: Task Manager closed successfully.
+Notepad closed successfully.
+🛠️ Current Development Roadmap
+
+Nain is being developed incrementally.
+
+Completed
+
+Local LLM integration through LM Studio
+
+Natural-language command processing
+
+Tool-based architecture
+
+Windows application discovery
+
+Start Menu application discovery
+
+Windows PATH fallback
+
+Application launching
+
+Application closing
+
+Application aliases
+
+Application listing
+
+Windows system utility discovery
+
+Multi-action commands
+
+Sequential multi-tool execution
+
+In Development
+
+Window-level application control
+
+Close a specific application instance/window
+
+File search and management improvements
+
+More advanced Windows automation
+
+Better tool selection and intent handling
+
+Improved error handling
+
+More natural conversational interaction
+
+Graphical user interface
+
+Voice interaction
+
+🎯 Long-Term Vision
+
+The goal of Nain is to develop a capable local AI desktop assistant that can understand natural language and interact with the user's computer through reliable, structured tools.
+
+The long-term system is intended to move beyond simple application launching toward:
+
+Natural Language
+       ↓
+      Nain
+       ↓
+Intent Understanding
+       ↓
+Tool Selection
+       ↓
+Windows / Files / Terminal
+       ↓
+Action
+       ↓
+Result
+
+The emphasis is on building the system incrementally, testing each capability, and documenting its development publicly.
+
+📌 Project Status
+
+Nain is an experimental personal AI assistant under active development.
+
+Features and architecture may change as the project evolves.
+
+More major versions and development milestones will be documented as the project progresses.
+
+👨‍💻 Author
+
+Muhammad Hasnain
+
+AI Student & Researcher
+
+LinkedIn: https://www.linkedin.com/in/zmha1270/
+GitHub: https://github.com/zmha
+Google Scholar: https://scholar.google.com/citations?user=VE-85okAAAAJ&hl=en
+ORCID: https://orcid.org/0009-0003-8191-5092
+📄 License
+
+License information will be added as the project develops.
