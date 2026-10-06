@@ -1,17 +1,18 @@
 # ============================================================
 # NAIN — SYSTEM APPLICATION TOOLS
 # ============================================================
-#
+
 # Purpose:
 #   Windows application discovery, opening, closing, and
 #   system utility discovery for the Nain AI assistant.
 #
 # Design:
-#   1. Windows Start Menu is the primary source of truth.
-#   2. Windows PATH is used as a fallback.
-#   3. Common human-friendly application aliases are supported.
-#   4. No large hardcoded application database is required.
-#
+#   1. Windows system-app aliases are checked first.
+#   2. Windows Start Menu is the primary source of truth.
+#   3. Windows PATH is used as a fallback.
+#   4. Common human-friendly application aliases are supported.
+#   5. No large hardcoded application database is required.
+
 # ============================================================
 
 
@@ -55,32 +56,85 @@ START_MENU_PATHS = [
 # ============================================================
 # SECTION 2 — COMMON APPLICATION ALIASES
 # ============================================================
-#
-# These are common names users may use instead of the actual
-# Windows application name.
-#
-# Windows discovery remains the source of truth.
-#
-# Example:
-#
-#   "vs code"  -> "visual studio code"
-#   "vscode"   -> "visual studio code"
-#   "code"     -> "visual studio code"
-#
-# ============================================================
 
 APPLICATION_ALIASES = {
 
     "vs code": "visual studio code",
-
     "vscode": "visual studio code",
-
     "code": "visual studio code",
+
 }
 
 
 # ============================================================
-# SECTION 3 — NORMALIZE APPLICATION NAME
+# SECTION 3 — WINDOWS SYSTEM APPLICATIONS
+# ============================================================
+
+# These are Windows applications/utilities that may not appear
+# as normal .lnk applications in the Start Menu scan.
+#
+# The values are commands understood by Windows.
+#
+# This is intentionally kept small and focused on common
+# human-friendly Windows applications.
+
+WINDOWS_SYSTEM_APPS = {
+
+    # Calculator
+    "calculator": "calc.exe",
+    "calc": "calc.exe",
+
+    # Settings
+    "settings": "ms-settings:",
+
+    # File Explorer
+    "file explorer": "explorer.exe",
+    "explorer": "explorer.exe",
+
+    # Command Prompt
+    "command prompt": "cmd.exe",
+    "cmd": "cmd.exe",
+
+    # PowerShell
+    "powershell": "powershell.exe",
+    "windows powershell": "powershell.exe",
+
+    # Registry Editor
+    "registry editor": "regedit.exe",
+    "regedit": "regedit.exe",
+
+    # Control Panel
+    "control panel": "control.exe",
+
+    # Task Manager
+    "task manager": "taskmgr.exe",
+    "taskmgr": "taskmgr.exe",
+
+    # Resource Monitor
+    "resource monitor": "resmon.exe",
+
+    # Character Map
+    "character map": "charmap.exe",
+
+    # Magnifier
+    "magnifier": "magnify.exe",
+    "magnify": "magnify.exe",
+
+    # On-Screen Keyboard
+    "on screen keyboard": "osk.exe",
+    "on-screen keyboard": "osk.exe",
+
+    # Narrator
+    "narrator": "narrator.exe",
+
+    # Snipping Tool
+    "snipping tool": "snippingtool.exe",
+
+}
+
+
+# ============================================================
+# SECTION 4 — NORMALIZE APPLICATION NAME
 # ============================================================
 
 def normalize_application_name(name):
@@ -120,6 +174,7 @@ def normalize_application_name(name):
         "close ",
         "exit ",
         "quit ",
+        "terminate "
     ]
 
     for prefix in prefixes:
@@ -149,7 +204,28 @@ def normalize_application_name(name):
 
 
 # ============================================================
-# SECTION 4 — SEARCH WINDOWS START MENU
+# SECTION 5 — SEARCH WINDOWS SYSTEM APPLICATIONS
+# ============================================================
+
+def search_windows_system_app(name):
+    """
+    Search the internal Windows system application resolver.
+
+    Returns:
+        Windows command/path
+        or None
+    """
+
+    name = normalize_application_name(name)
+
+    if not name:
+        return None
+
+    return WINDOWS_SYSTEM_APPS.get(name)
+
+
+# ============================================================
+# SECTION 6 — SEARCH WINDOWS START MENU
 # ============================================================
 
 def search_start_menu(name):
@@ -186,7 +262,11 @@ def search_start_menu(name):
                 if not file.lower().endswith(".lnk"):
                     continue
 
-                shortcut_name = os.path.splitext(file)[0].lower().strip()
+                shortcut_name = (
+                    os.path.splitext(file)[0]
+                    .lower()
+                    .strip()
+                )
 
                 if shortcut_name == name:
 
@@ -214,7 +294,11 @@ def search_start_menu(name):
                 if not file.lower().endswith(".lnk"):
                     continue
 
-                shortcut_name = os.path.splitext(file)[0].lower().strip()
+                shortcut_name = (
+                    os.path.splitext(file)[0]
+                    .lower()
+                    .strip()
+                )
 
                 # User input exists inside shortcut name
                 if name in shortcut_name:
@@ -236,18 +320,12 @@ def search_start_menu(name):
 
 
 # ============================================================
-# SECTION 5 — RESOLVE WINDOWS SHORTCUT
+# SECTION 7 — RESOLVE WINDOWS SHORTCUT
 # ============================================================
 
 def resolve_shortcut(shortcut_path):
     """
     Resolve a Windows .lnk shortcut to its actual target.
-
-    Example:
-
-        Visual Studio Code.lnk
-            ->
-        Code.exe
     """
 
     if not shortcut_path:
@@ -299,7 +377,7 @@ def resolve_shortcut(shortcut_path):
 
 
 # ============================================================
-# SECTION 6 — SEARCH WINDOWS PATH
+# SECTION 8 — SEARCH WINDOWS PATH
 # ============================================================
 
 def search_windows_path(name):
@@ -340,7 +418,7 @@ def search_windows_path(name):
 
 
 # ============================================================
-# SECTION 7 — FIND APPLICATION
+# SECTION 9 — FIND APPLICATION
 # ============================================================
 
 def find_application(name):
@@ -349,8 +427,9 @@ def find_application(name):
 
     Search order:
 
-        1. Start Menu
-        2. Windows PATH
+        1. Windows system application resolver
+        2. Start Menu
+        3. Windows PATH
     """
 
     name = normalize_application_name(name)
@@ -359,7 +438,17 @@ def find_application(name):
         return None
 
     # --------------------------------------------------------
-    # METHOD 1 — WINDOWS START MENU
+    # METHOD 1 — WINDOWS SYSTEM APPLICATIONS
+    # --------------------------------------------------------
+
+    system_application = search_windows_system_app(name)
+
+    if system_application:
+
+        return system_application
+
+    # --------------------------------------------------------
+    # METHOD 2 — WINDOWS START MENU
     # --------------------------------------------------------
 
     shortcut = search_start_menu(name)
@@ -369,7 +458,7 @@ def find_application(name):
         return shortcut
 
     # --------------------------------------------------------
-    # METHOD 2 — WINDOWS PATH
+    # METHOD 3 — WINDOWS PATH
     # --------------------------------------------------------
 
     application = search_windows_path(name)
@@ -382,7 +471,7 @@ def find_application(name):
 
 
 # ============================================================
-# SECTION 8 — OPEN APPLICATION
+# SECTION 10 — OPEN APPLICATION
 # ============================================================
 
 def open_application(name):
@@ -410,10 +499,21 @@ def open_application(name):
     try:
 
         # ----------------------------------------------------
+        # WINDOWS URI / PROTOCOL
+        # ----------------------------------------------------
+
+        if (
+            isinstance(application, str)
+            and application.endswith(":")
+        ):
+
+            os.startfile(application)
+
+        # ----------------------------------------------------
         # START MENU SHORTCUT
         # ----------------------------------------------------
 
-        if application.lower().endswith(".lnk"):
+        elif application.lower().endswith(".lnk"):
 
             os.startfile(application)
 
@@ -446,18 +546,12 @@ def open_application(name):
 
 
 # ============================================================
-# SECTION 9 — GET ACTUAL PROCESS NAME
+# SECTION 11 — GET ACTUAL PROCESS NAME
 # ============================================================
 
 def get_process_name(application):
     """
     Determine the actual Windows process name.
-
-    Example:
-
-        Task Manager.lnk
-            ->
-        Taskmgr.exe
     """
 
     if not application:
@@ -465,7 +559,59 @@ def get_process_name(application):
         return None
 
     # --------------------------------------------------------
-    # RESOLVE WINDOWS SHORTCUT
+    # Windows system application process mappings
+    # --------------------------------------------------------
+
+    system_processes = {
+
+        "calculator": "CalculatorApp.exe",
+        "calc": "CalculatorApp.exe",
+
+        "settings": "SystemSettings.exe",
+
+        "file explorer": "explorer.exe",
+        "explorer": "explorer.exe",
+
+        "task manager": "Taskmgr.exe",
+        "taskmgr": "Taskmgr.exe",
+
+        "command prompt": "cmd.exe",
+        "cmd": "cmd.exe",
+
+        "powershell": "powershell.exe",
+        "windows powershell": "powershell.exe",
+
+        "registry editor": "regedit.exe",
+        "regedit": "regedit.exe",
+
+        "resource monitor": "resmon.exe",
+
+        "control panel": "control.exe",
+
+        "character map": "charmap.exe",
+
+        "magnifier": "Magnify.exe",
+        "magnify": "Magnify.exe",
+
+        "on screen keyboard": "osk.exe",
+        "on-screen keyboard": "osk.exe",
+
+        "narrator": "Narrator.exe",
+
+        "snipping tool": "SnippingTool.exe",
+
+    }
+
+    normalized = normalize_application_name(
+        application
+    )
+
+    if normalized in system_processes:
+
+        return system_processes[normalized]
+
+    # --------------------------------------------------------
+    # Resolve Windows shortcut
     # --------------------------------------------------------
 
     if application.lower().endswith(".lnk"):
@@ -479,7 +625,7 @@ def get_process_name(application):
         application = target
 
     # --------------------------------------------------------
-    # EXTRACT EXECUTABLE FILENAME
+    # Extract executable filename
     # --------------------------------------------------------
 
     filename = os.path.basename(application)
@@ -496,7 +642,7 @@ def get_process_name(application):
 
 
 # ============================================================
-# SECTION 10 — CHECK IF PROCESS IS RUNNING
+# SECTION 12 — CHECK IF PROCESS IS RUNNING
 # ============================================================
 
 def is_process_running(process_name):
@@ -531,7 +677,7 @@ def is_process_running(process_name):
 
 
 # ============================================================
-# SECTION 11 — CLOSE APPLICATION
+# SECTION 13 — CLOSE APPLICATION
 # ============================================================
 
 def close_application(name):
@@ -547,30 +693,39 @@ def close_application(name):
     name = normalize_application_name(name)
 
     if not name:
-
         return "No application name was provided."
 
     application = find_application(name)
 
+    # --------------------------------------------------------
+    # If application is not found, check known Windows
+    # system applications.
+    # --------------------------------------------------------
+
     if not application:
 
-        return (
-            f"I could not find an application named "
-            f"'{original_name}'."
-        )
+        if name in WINDOWS_SYSTEM_APPS:
+            application = WINDOWS_SYSTEM_APPS[name]
+
+        else:
+            return (
+                f"I could not find an application named "
+                f"'{original_name}'."
+            )
 
     try:
 
         # ----------------------------------------------------
-        # DETERMINE ACTUAL EXECUTABLE PROCESS
+        # FIRST:
+        # Try to determine process from the actual
+        # application/shortcut that was discovered.
         # ----------------------------------------------------
 
-        process_name = get_process_name(
-            application
-        )
+        process_name = get_process_name(application)
 
         # ----------------------------------------------------
-        # WINDOWS UTILITY FALLBACKS
+        # SECOND:
+        # Known Windows system-app process fallbacks.
         # ----------------------------------------------------
 
         if not process_name:
@@ -586,6 +741,9 @@ def close_application(name):
                 "windows powershell":
                     "powershell.exe",
 
+                "powershell":
+                    "powershell.exe",
+
                 "windows powershell ise":
                     "powershell_ise.exe",
 
@@ -597,11 +755,46 @@ def close_application(name):
 
                 "control panel":
                     "control.exe",
+
+                "calculator":
+                    "CalculatorApp.exe",
+
+                "calc":
+                    "CalculatorApp.exe",
+
+                "settings":
+                    "SystemSettings.exe",
+
+                "character map":
+                    "charmap.exe",
+
+                "magnifier":
+                    "Magnify.exe",
+
+                "magnify":
+                    "Magnify.exe",
+
+                "on screen keyboard":
+                    "osk.exe",
+
+                "on-screen keyboard":
+                    "osk.exe",
+
+                "narrator":
+                    "Narrator.exe",
+
+                "snipping tool":
+                    "SnippingTool.exe",
+
             }
 
             process_name = process_fallbacks.get(
                 name.lower()
             )
+
+        # ----------------------------------------------------
+        # PROCESS COULD NOT BE DETERMINED
+        # ----------------------------------------------------
 
         if not process_name:
 
@@ -614,9 +807,7 @@ def close_application(name):
         # CHECK WHETHER PROCESS IS RUNNING
         # ----------------------------------------------------
 
-        if not is_process_running(
-            process_name
-        ):
+        if not is_process_running(process_name):
 
             return (
                 f"{name.title()} is not currently running."
@@ -649,7 +840,7 @@ def close_application(name):
             )
 
         # ----------------------------------------------------
-        # WINDOWS PERMISSION ERROR
+        # PERMISSION ERROR
         # ----------------------------------------------------
 
         error_output = (
@@ -686,9 +877,8 @@ def close_application(name):
             f"Could not close {name}: {e}"
         )
 
-
 # ============================================================
-# SECTION 12 — LIST DISCOVERED APPLICATIONS
+# SECTION 14 — LIST DISCOVERED APPLICATIONS
 # ============================================================
 
 def list_applications():
@@ -756,6 +946,7 @@ def list_applications():
         "windows media player legacy",
         "windows powershell",
         "windows powershell ise",
+
     ]
 
     # --------------------------------------------------------
@@ -846,7 +1037,7 @@ def list_applications():
 
 
 # ============================================================
-# SECTION 13 — LIST WINDOWS SYSTEM UTILITIES
+# SECTION 15 — LIST WINDOWS SYSTEM UTILITIES
 # ============================================================
 
 def list_system_utilities():
@@ -900,6 +1091,7 @@ def list_system_utilities():
         "windows powershell ise",
         "windows defender firewall with advanced security",
         "windows media player legacy",
+
     ]
 
     # --------------------------------------------------------
@@ -954,6 +1146,13 @@ def list_system_utilities():
                         )
 
                         break
+
+    # --------------------------------------------------------
+    # ADD RESOLVABLE SYSTEM APPS
+    # --------------------------------------------------------
+
+    utilities.add("Calculator")
+    utilities.add("Settings")
 
     # --------------------------------------------------------
     # SORT UTILITIES

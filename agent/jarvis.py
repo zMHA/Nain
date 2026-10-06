@@ -81,7 +81,7 @@ class Jarvis:
                     .decode("utf-8")
                 )
 
-                result = json.loads(raw_response)
+            result = json.loads(raw_response)
 
             message = result["choices"][0]["message"]
 
@@ -459,6 +459,116 @@ class Jarvis:
             )
 
     # ==========================================================
+    # DETERMINISTIC SIMPLE TOOL ROUTER
+    # ==========================================================
+    def detect_simple_tool(self, user_input):
+        text = user_input.strip().lower()
+
+        # ============================================================
+        # SYSTEM UTILITIES
+        # ============================================================
+
+        system_utility_phrases = [
+            "list system utilities",
+            "show system utilities",
+            "what system utilities are available",
+            "what windows utilities are available",
+            "show me windows utilities",
+            "list windows utilities",
+            "show system tools",
+            "what system tools are available",
+            "what system tools can you open",
+        ]
+
+        if any(phrase in text for phrase in system_utility_phrases):
+            return {
+                "tool": "list_system_utilities",
+                "arguments": {}
+            }
+
+        # ============================================================
+        # APPLICATION LISTING
+        # ============================================================
+
+        application_list_phrases = [
+            "list application",
+            "list applications",
+            "list app",
+            "list apps",
+            "list all applications",
+            "list all apps",
+            "show application",
+            "show applications",
+            "show app",
+            "show apps",
+            "show me my applications",
+            "show me my apps",
+            "what applications are installed",
+            "what applications do i have",
+            "what apps are installed",
+            "what applications can you open",
+            "what apps can you open",
+            "which applications are available",
+        ]
+
+        if any(phrase in text for phrase in application_list_phrases):
+            return {
+                "tool": "list_applications",
+                "arguments": {}
+            }
+
+        # ============================================================
+        # OPEN APPLICATION
+        # ============================================================
+
+        open_phrases = [
+            "open ",
+            "launch ",
+            "start ",
+            "run "
+        ]
+
+        if any(text.startswith(phrase) for phrase in open_phrases):
+            for phrase in open_phrases:
+                if text.startswith(phrase):
+                    app_name = text[len(phrase):].strip()
+                    break
+
+            if app_name:
+                return {
+                    "tool": "open_application",
+                    "arguments": {
+                        "name": app_name
+                    }
+                }
+
+        # ============================================================
+        # CLOSE APPLICATION
+        # ============================================================
+
+        close_phrases = [
+            "close ",
+            "exit ",
+            "quit "
+        ]
+
+        if any(text.startswith(phrase) for phrase in close_phrases):
+            for phrase in close_phrases:
+                if text.startswith(phrase):
+                    app_name = text[len(phrase):].strip()
+                    break
+
+            if app_name:
+                return {
+                    "tool": "close_application",
+                    "arguments": {
+                        "name": app_name
+                    }
+                }
+
+        return None
+
+    # ==========================================================
     # PROCESS USER REQUEST
     # ==========================================================
 
@@ -472,13 +582,42 @@ class Jarvis:
         )
 
         # ------------------------------------------------------
-        # Ask Qwen
+        # DETERMINISTIC SIMPLE TOOL ROUTING
+        # ------------------------------------------------------
+
+        simple_tool = self.detect_simple_tool(
+            user_input
+        )
+
+        if simple_tool:
+
+            tool_name = simple_tool.get(
+                "tool",
+                "unknown"
+            )
+
+            print(
+                f"\n[Tool requested: {tool_name}]"
+            )
+
+            result = self.execute_tool(
+                simple_tool
+            )
+
+            print(
+                "[Tool execution completed]"
+            )
+
+            return result
+
+        # ------------------------------------------------------
+        # ASK QWEN
         # ------------------------------------------------------
 
         response = self.ask_model()
 
         # ------------------------------------------------------
-        # Check if model failed
+        # CHECK IF MODEL FAILED
         # ------------------------------------------------------
 
         if response.startswith(
@@ -494,7 +633,7 @@ class Jarvis:
             return response
 
         # ------------------------------------------------------
-        # Parse tool request
+        # PARSE TOOL REQUEST
         # ------------------------------------------------------
 
         tool_data = self.parse_tool(
@@ -502,7 +641,7 @@ class Jarvis:
         )
 
         # ------------------------------------------------------
-        # Normal answer
+        # NORMAL ANSWER
         # ------------------------------------------------------
 
         if not tool_data:
@@ -517,7 +656,7 @@ class Jarvis:
             return response
 
         # ------------------------------------------------------
-        # Store assistant request
+        # STORE ASSISTANT REQUEST
         # ------------------------------------------------------
 
         self.messages.append(
@@ -555,6 +694,7 @@ class Jarvis:
                     tool_request,
                     dict
                 ):
+
                     continue
 
                 tool_name = tool_request.get(
