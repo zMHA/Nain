@@ -804,10 +804,32 @@ def close_application(name):
             )
 
         # ----------------------------------------------------
-        # CHECK WHETHER PROCESS IS RUNNING
+        # PROCESS CANDIDATES
+        # ----------------------------------------------------
+        # Some Windows applications do not use the same
+        # executable name that is used to launch them.
+        # Calculator may appear as CalculatorApp.exe or calc.exe.
+
+        process_candidates = [process_name]
+
+        if name.lower() in ["calculator", "calc"]:
+            process_candidates = [
+                "CalculatorApp.exe",
+                "calc.exe",
+            ]
+
+        # ----------------------------------------------------
+        # FIND A RUNNING PROCESS
         # ----------------------------------------------------
 
-        if not is_process_running(process_name):
+        running_process = None
+
+        for candidate in process_candidates:
+            if is_process_running(candidate):
+                running_process = candidate
+                break
+
+        if not running_process:
 
             return (
                 f"{name.title()} is not currently running."
@@ -821,7 +843,7 @@ def close_application(name):
             [
                 "taskkill",
                 "/IM",
-                process_name,
+                running_process,
                 "/F"
             ],
             capture_output=True,
