@@ -1,202 +1,196 @@
 # Nain — Local AI Desktop Assistant
 
-Nain is a local AI desktop assistant that uses a language model running through LM Studio to understand natural-language commands and interact with Windows applications.
+Nain is a **local AI-powered Windows desktop assistant** designed to understand natural-language commands and interact with the Windows operating system.
 
-The project started as a simple local AI assistant and is gradually evolving into a more capable Windows automation system.
+The project started as a simple local AI assistant and is gradually evolving into a more capable **natural-language Windows automation system**.
 
-**Current Version:** v0.1 — Application & System Control
-**Current Status:** Active development
-**Model Backend:** LM Studio
-**Current Model:** Qwen2.5-Coder-7B-Instruct
+> **Current Version: v0.4**
+> **Status: Active Development**
 
 ---
 
-## Features
+## 🚀 Overview
 
-### 🤖 Local AI
+Nain combines a locally running Large Language Model (LLM) with Python-based Windows tools.
 
-Nain uses a locally running language model through LM Studio.
-
-* Local inference through LM Studio
-* OpenAI-compatible API
-* Natural-language interaction
-* Tool-based action execution
-* Configurable model, temperature, and token limits
-* No cloud LLM API is required for the core assistant
-
----
-
-### 🖥️ Windows Application Control
-
-Nain can discover and control Windows applications without requiring every application to be manually added to a configuration file.
-
-The Windows Start Menu is used as the primary source of application discovery, with Windows PATH used as a fallback.
-
-#### Open applications
-
-Examples:
-
-```text
-open Chrome
-open Word
-open Excel
-open Task Manager
-open VS Code
-```
-
-Nain also understands common application aliases:
-
-```text
-open vs code
-open vscode
-open code
-```
-
-These are resolved to:
-
-```text
-Visual Studio Code
-```
-
-#### Close applications
-
-Examples:
-
-```text
-close Chrome
-close Word
-close Excel
-close VS Code
-close Task Manager
-```
-
----
-
-### 🔀 Multi-Action Commands
-
-Nain can execute multiple independent actions from a single natural-language command.
+Instead of requiring users to remember specific commands, Nain allows them to interact with their computer using natural language.
 
 For example:
 
 ```text
-open Word and Excel
+open calculator
 ```
-
-or:
 
 ```text
-open Chrome and Task Manager
+close word
 ```
-
-It can also process multiple closing actions:
 
 ```text
-close Word and Excel
+open file config_test.txt
 ```
 
-The model produces multiple tool calls and Nain executes them in the requested order.
+```text
+create a file called notes.txt
+```
+
+```text
+search for files on Desktop
+```
+
+Nain interprets the request, determines the appropriate action, executes the corresponding tool, and returns the result.
 
 ---
 
-### 📋 Application Discovery
+## 🤖 Local AI
 
-Nain can discover applications installed through the Windows Start Menu.
+Nain currently uses **LM Studio** as its local LLM backend.
 
-Example:
+### Current Model
 
 ```text
-list applications
+Qwen2.5-Coder-7B-Instruct
 ```
 
-It can return applications such as:
+### Backend
 
 ```text
-Google Chrome
-Microsoft Edge
-Visual Studio Code
-Microsoft Word
-Microsoft Excel
-PowerPoint
 LM Studio
-Notepad
-...
 ```
 
-This means applications do not need to be manually registered one by one.
+### Local API
+
+```text
+http://localhost:1234/v1
+```
+
+The model runs locally on the user's computer rather than relying on a cloud-based AI API.
 
 ---
 
-### ⚙️ Windows System Utilities
+## ✨ Features
 
-Nain can also discover Windows system utilities separately.
+### 🖥️ Windows Application Control
+
+Nain can interact with installed Windows applications through natural-language instructions.
+
+Current capabilities include:
+
+* Open applications
+* Close applications
+* Detect running applications
+* Discover installed applications
+* Work with applications such as:
+
+  * Microsoft Word
+  * Microsoft PowerPoint
+  * Notepad
+  * Calculator
+  * Other detected Windows applications
 
 Example:
 
 ```text
-list system utilities
+open word
 ```
-
-Examples include:
 
 ```text
-Task Manager
-Command Prompt
-PowerShell
-Registry Editor
-Control Panel
-Resource Monitor
-Event Viewer
-Services
-System Information
-Task Scheduler
-...
+close word
 ```
 
-This separation keeps normal applications and Windows utilities organized.
+---
+
+### 📂 File Management
+
+Nain can perform common file-management operations.
+
+Current tools include:
+
+* List files
+* Search files
+* Read files
+* Create files
+* Edit files
+* Copy files
+* Move files
+* Rename files
+* Delete files
+
+Example:
+
+```text
+open file config_test.txt
+```
+
+```text
+create a file called notes.txt
+```
+
+```text
+search for files on Desktop
+```
+
+---
+
+### ⚙️ System Utilities
+
+Nain can discover and interact with Windows system utilities through its tool system.
+
+The assistant is designed to distinguish between:
+
+* Applications
+* System utilities
+* Files
+* File operations
+* Windows commands
+
+---
+
+### 💻 Command Execution
+
+Nain includes a command-execution tool that allows supported Windows commands to be executed through the assistant.
+
+This provides a foundation for future Windows automation capabilities.
 
 ---
 
 ## 🧠 Tool-Based Architecture
 
-Nain does not simply generate text responses.
+Nain uses an agent/tool architecture rather than simply generating text responses.
 
-When an action is required, the language model generates a structured tool request.
+The general workflow is:
 
-### Single action
-
-```json
-{
-  "tool": "open_application",
-  "arguments": {
-    "name": "Chrome"
-  }
-}
+```text
+User
+  │
+  ▼
+Natural Language Command
+  │
+  ▼
+Nain Agent
+  │
+  ▼
+Local LLM
+(LM Studio + Qwen2.5-Coder)
+  │
+  ▼
+Tool Selection
+  │
+  ├── Application Control
+  ├── File Management
+  ├── System Utilities
+  └── Command Execution
+  │
+  ▼
+Tool Execution
+  │
+  ▼
+Result
+  │
+  ▼
+Nain Response
 ```
 
-### Multiple actions
-
-```json
-{
-  "tools": [
-    {
-      "tool": "open_application",
-      "arguments": {
-        "name": "Chrome"
-      }
-    },
-    {
-      "tool": "open_application",
-      "arguments": {
-        "name": "Visual Studio Code"
-      }
-    }
-  ]
-}
-```
-
-Nain then executes the requested tools locally.
-
-This architecture allows new capabilities to be added as independent tools instead of putting all functionality into a single large program.
+This architecture allows the project to gradually grow by adding new tools without rebuilding the entire assistant.
 
 ---
 
@@ -205,97 +199,134 @@ This architecture allows new capabilities to be added as independent tools inste
 ```text
 Nain/
 │
-├── main.py
-├── config.py
-│
 ├── agent/
 │   └── jarvis.py
 │
 ├── tools/
-│   ├── system.py
-│   ├── files.py
-│   └── terminal.py
+│   └── system.py
+│
+├── config.py
+│
+├── main.py
+│
+├── requirements.txt
+│
+├── README.md
 │
 └── venv/
 ```
 
-### Main components
-
-**`main.py`**
-
-Starts the Nain assistant and provides the interactive command-line interface.
-
-**`config.py`**
-
-Contains LM Studio configuration and the system prompt that defines Nain's behavior and available tools.
-
-**`agent/jarvis.py`**
-
-Handles communication with the language model, tool parsing, and tool execution.
-
-**`tools/system.py`**
-
-Provides Windows application discovery, application launching, application closing, application aliases, and Windows system utility discovery.
-
-**`tools/files.py`**
-
-Provides file-related functionality and is currently part of the project's expanding tool system.
-
-**`tools/terminal.py`**
-
-Provides terminal-related functionality.
+> The internal file and module names are currently inherited from the project's early development stage and may be renamed as Nain evolves.
 
 ---
 
-## 💻 Current Environment
+## 🛠️ Technology Stack
 
-The current development environment uses:
+| Component            | Technology                  |
+| -------------------- | --------------------------- |
+| Programming Language | Python                      |
+| AI Model             | Qwen2.5-Coder-7B-Instruct   |
+| LLM Backend          | LM Studio                   |
+| Operating System     | Windows                     |
+| AI Architecture      | Tool-using local agent      |
+| API                  | OpenAI-compatible local API |
+| Environment          | Python Virtual Environment  |
+
+---
+
+## 💻 System Requirements
+
+Nain is designed to run locally on a normal Windows computer.
+
+The current development system uses:
 
 * Windows
-* Python
-* LM Studio
-* Qwen2.5-Coder-7B-Instruct
-* PowerShell / Windows Terminal
-* Python virtual environment
+* Intel Core i5-10310U
+* 16 GB RAM
+* 512 GB NVMe SSD
+* Intel UHD Graphics
 
-### LM Studio Endpoint
-
-```text
-http://localhost:1234/v1/chat/completions
-```
+Because the LLM runs locally, performance depends on the available system resources and model configuration.
 
 ---
 
-## 🚀 Running Nain
+## ⚙️ Installation
 
-Clone the repository:
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/zMHA/Nain.git
+```
+
+Enter the project directory:
+
+```bash
 cd Nain
 ```
 
-Create a virtual environment:
+---
+
+### 2. Create a virtual environment
 
 ```bash
 python -m venv venv
 ```
 
-Install the required dependencies:
+Activate it on Windows PowerShell:
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+---
+
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Start LM Studio and load the configured model.
+---
 
-Then run:
+### 4. Install and configure LM Studio
 
-```powershell
-.\venv\Scripts\python.exe main.py
+Install LM Studio and download:
+
+```text
+Qwen2.5-Coder-7B-Instruct
 ```
 
-You should see:
+Load the model in LM Studio and start the local server.
+
+The default API endpoint used by Nain is:
+
+```text
+http://localhost:1234/v1
+```
+
+---
+
+### 5. Configure Nain
+
+Check:
+
+```text
+config.py
+```
+
+Make sure the model and LM Studio endpoint match your local configuration.
+
+---
+
+### 6. Start Nain
+
+Run:
+
+```powershell
+python main.py
+```
+
+You should see something similar to:
 
 ```text
 Model: qwen2.5-coder-7b-instruct
@@ -303,125 +334,193 @@ Backend: LM Studio (localhost:1234)
 Type 'exit' or 'quit' to close.
 ```
 
----
-
-## 🧪 Example Interaction
-
-### Open an application
-
-```text
-You: open vs code
-
-[Tool requested: open_application]
-[Tool execution completed]
-
-Nain: Visual Studio Code opened successfully.
-```
-
-### Multiple applications
-
-```text
-You: open notepad and task manager
-
-[Tool requested: open_application]
-[Tool execution completed]
-
-[Tool requested: open_application]
-[Tool execution completed]
-
-Nain: Notepad opened successfully.
-Task Manager opened successfully.
-```
-
-### Multiple closing actions
-
-```text
-You: close task manager and notepad
-
-[Tool requested: close_application]
-[Tool execution completed]
-
-[Tool requested: close_application]
-[Tool execution completed]
-
-Nain: Task Manager closed successfully.
-Notepad closed successfully.
-```
+You can then interact with Nain using natural language.
 
 ---
 
-## 🛠️ Development Roadmap
+## 🧪 Example Commands
+
+### Applications
+
+```text
+open calculator
+```
+
+```text
+close calculator
+```
+
+```text
+open word
+```
+
+```text
+close word
+```
+
+### Files
+
+```text
+open file config_test.txt
+```
+
+```text
+create a file called notes.txt
+```
+
+```text
+edit notes.txt
+```
+
+```text
+search for files on Desktop
+```
+
+### General System Interaction
+
+```text
+list applications
+```
+
+```text
+list system utilities
+```
+
+```text
+run command ...
+```
+
+Nain determines which tool should handle the request.
+
+---
+
+## 🔐 Local-First Design
+
+One of the main goals of Nain is to maintain a **local-first architecture**.
+
+The current AI inference is performed locally through LM Studio.
+
+This provides several advantages:
+
+* No mandatory cloud AI API
+* Local model execution
+* Greater control over data
+* Offline-capable AI foundation
+* Ability to customize the assistant
+* Full control over the underlying tools
+
+Nain is being developed with the long-term goal of becoming a more capable local AI environment rather than simply a chatbot.
+
+---
+
+## 📈 Development Roadmap
+
+### ✅ v0.1 — Initial Assistant
+
+* Local AI foundation
+* Natural-language interaction
+* Basic Windows automation
+
+### ✅ v0.2 — Application Control
+
+* Application discovery
+* Open applications
+* Close applications
+* Improved Windows interaction
+
+### ✅ v0.3 — File Management
+
+* File discovery
+* File search
+* File reading
+* File creation
+* File editing
+* File copying
+* File moving
+* File renaming
+* File deletion
+
+### ✅ v0.4 — Improved Command Understanding
+
+* Improved natural-language command handling
+* Better tool routing
+* Improved application/file distinction
+* Improved system interaction
+* Expanded tool-based architecture
+
+### 🔜 v0.5 — Next Development Phase
+
+Planned development will focus on making Nain more capable, reliable, and intelligent when performing multi-step Windows tasks.
+
+Potential areas include:
+
+* More reliable tool selection
+* Multi-step task execution
+* Better context awareness
+* Improved error handling
+* More Windows automation
+* Expanded system controls
+
+### 🎯 Long-Term Vision
+
+The long-term goal is to evolve Nain into a powerful **local AI desktop agent** capable of understanding a user's intent and completing useful computer tasks autonomously while keeping the core intelligence and execution environment under the user's control.
+
+---
+
+## 🏷️ Version History
+
+| Version | Status     | Focus                                           |
+| ------- | ---------- | ----------------------------------------------- |
+| v0.1    | ✅ Complete | Initial local AI assistant                      |
+| v0.2    | ✅ Complete | Windows application control                     |
+| v0.3    | ✅ Complete | File management                                 |
+| v0.4    | ✅ Complete | Improved command understanding and tool routing |
+| v0.5    | 🔜 Planned | Advanced automation                             |
+| v1.0    | 🎯 Future  | Stable public release                           |
+
+---
+
+## 🔬 Development Philosophy
 
 Nain is being developed incrementally.
 
-### ✅ Completed
+Each version introduces a new capability, is tested locally, and is then published as a milestone.
 
-* Local LLM integration through LM Studio
-* Natural-language command processing
-* Tool-based architecture
-* Windows application discovery
-* Start Menu application discovery
-* Windows PATH fallback
-* Application launching
-* Application closing
-* Application aliases
-* Application listing
-* Windows system utility discovery
-* Multi-action commands
-* Sequential multi-tool execution
-
-### 🔨 Next Development Stage
-
-* Window-level application control
-* Close a specific application instance/window
-* File search and management improvements
-* More advanced Windows automation
-* Better tool selection and intent handling
-* Improved error handling
-* More natural conversational interaction
-
-### 🔮 Future
-
-* Graphical user interface
-* Voice interaction
-* More advanced computer interaction
-* Expanded local AI capabilities
-
----
-
-## 🎯 Long-Term Vision
-
-The goal of Nain is to develop a capable local AI desktop assistant that can understand natural language and interact with the user's computer through reliable, structured tools.
-
-The long-term system is intended to move beyond simple application launching toward:
+The development philosophy is:
 
 ```text
-Natural Language
-       ↓
-      Nain
-       ↓
-Intent Understanding
-       ↓
-Tool Selection
-       ↓
-Windows / Files / Terminal
-       ↓
-Action
-       ↓
-Result
+Build
+  ↓
+Test
+  ↓
+Improve
+  ↓
+Release
+  ↓
+Document
+  ↓
+Build the next capability
 ```
 
-The emphasis is on building the system incrementally, testing each capability, and documenting its development publicly.
+The project is intentionally evolving step by step rather than attempting to build a fully autonomous assistant in a single release.
 
 ---
 
-## 📌 Project Status
+## 📌 Current Status
 
-Nain is an experimental personal AI assistant under active development.
+**Nain v0.4 is complete.**
 
-Features and architecture may change as the project evolves.
+The project currently provides a functional foundation for a local Windows AI assistant with:
 
-Major versions and development milestones will be documented as the project progresses.
+* Local LLM inference
+* Natural-language interaction
+* Application control
+* File management
+* System utilities
+* Command execution
+* Tool-based agent architecture
+
+Development is ongoing toward more advanced desktop automation and agent capabilities.
 
 ---
 
@@ -429,15 +528,22 @@ Major versions and development milestones will be documented as the project prog
 
 **Muhammad Hasnain**
 
-AI Student & Researcher
+AI Researcher & Developer
 
-* LinkedIn: https://www.linkedin.com/in/zmha1270/
-* GitHub: https://github.com/zMHA
-* Google Scholar: https://scholar.google.com/citations?user=VE-85okAAAAJ&hl=en
-* ORCID: https://orcid.org/0009-0003-8191-5092
+GitHub: **[@zMHA](https://github.com/zMHA)**
+
+---
+
+## ⭐ Support the Project
+
+If you find Nain interesting or useful, consider giving the repository a ⭐ on GitHub.
+
+Contributions, ideas, experimentation, and feedback are welcome as the project continues to evolve.
 
 ---
 
 ## 📄 License
 
-License information will be added as the project develops.
+This project is currently under active development.
+
+License information will be added as the project moves toward a stable public release.
