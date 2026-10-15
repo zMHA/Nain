@@ -15,7 +15,9 @@ from tools.system import (
     open_application,
     close_application,
     list_applications,
-    list_system_utilities
+    list_system_utilities,
+    list_open_windows,
+    close_window
 )
 
 from tools.files import (
@@ -286,6 +288,23 @@ class Jarvis:
 
                 return list_system_utilities()
 
+            # --------------------------------------------------
+            # LIST OPEN WINDOWS
+            # --------------------------------------------------
+
+            elif tool == "list_open_windows":
+
+                return list_open_windows()
+
+            # --------------------------------------------------
+            # CLOSE SPECIFIC WINDOW
+            # --------------------------------------------------
+
+            elif tool == "close_window":
+
+                return close_window(
+                    arguments.get("title", "")
+                )
             # --------------------------------------------------
             # LIST FILES
             # --------------------------------------------------
@@ -1304,7 +1323,60 @@ class Jarvis:
                 "tool": "list_system_utilities",
                 "arguments": {}
             }
+        # ======================================================
+        # LIST OPEN WINDOWS
+        # ======================================================
 
+        window_list_phrases = [
+             "list open windows",
+            "show open windows",
+            "show me open windows",
+            "what windows are open",
+            "which windows are open",
+            "open windows",
+            "show windows"
+        ]
+
+        if any(
+            phrase in text
+            for phrase in window_list_phrases
+        ):
+            return {
+                "tool": "list_open_windows",
+                "arguments": {}
+            }
+
+        # ======================================================
+        # CLOSE SPECIFIC WINDOW
+        # ======================================================
+
+        close_window_phrases = [
+            "close window titled ",
+            "close the window titled ",
+            "close window ",
+            "close the window "
+        ]
+
+        for phrase in close_window_phrases:
+
+            if text.startswith(phrase):
+
+                window_title = (
+                    text[len(phrase):]
+                    .strip()
+                    .strip("\"'")
+                    .strip()
+                )
+
+                if window_title:
+                    return {
+                        "tool": "close_window",
+                        "arguments": {
+                            "title": window_title
+                        }
+                    }
+
+                return None
         # ======================================================
         # APPLICATION LISTING
         # ======================================================
@@ -1811,6 +1883,8 @@ class Jarvis:
             "close_application",
             "list_applications",
             "list_system_utilities",
+            "list_open_windows",
+            "close_window",
             "create_file",
             "edit_file",
             "copy_file",
@@ -1820,7 +1894,7 @@ class Jarvis:
             "list_files",
             "search_files",
             "read_file",
-            "run_command"
+            "run_command",
         ]
 
         if tool_name in direct_result_tools:

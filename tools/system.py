@@ -19,6 +19,9 @@
 import os
 import re
 import subprocess
+import csv
+import ctypes
+from ctypes import wintypes
 
 
 # ============================================================
@@ -640,6 +643,205 @@ def get_process_name(application):
 
     return filename + ".exe"
 
+
+# ============================================================
+# WINDOW-LEVEL CONTROL
+# ============================================================
+
+def _get_process_name_by_pid(pid):
+    """Return the executable name associated with a process ID."""
+
+    try:
+        result = subprocess.run(
+            [
+                "tasklist",
+                "/FI", f"PID eq {pid}",
+                "/FO", "CSV",
+                "/NH"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        for row in csv.reader(result.stdout.splitlines()):
+            if len(row) >= 2 and row[1].strip() == str(pid):
+                return row[0].strip()
+
+    except (OSError, subprocess.SubprocessError, csv.Error):
+        pass
+
+    return "Unknown"
+
+
+def _get_open_windows():
+    """Return visible titled windows and their process information."""
+
+    user32 = ctypes.windll.user32
+    windows = []
+
+    enum_windows_proc = ctypes.WINFUNCTYPE(
+        wintypes.BOOL,
+        wintypes.HWND,
+        wintypes.LPARAM
+    )
+
+    user32.IsWindowVisible.argtypes = [wintypes.HWND]
+    user32.IsWindowVisible.restype = wintypes.BOOL
+
+    user32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
+    user32.GetWindowTextLengthW.restype = ctypes.c_int
+
+    user32.GetWindowTextW.argtypes = [
+        wintypes.HWND,
+        wintypes.LPWSTR,
+        ctypes.c_int
+    ]
+    user32.GetWindowTextW.restype = ctypes.c_int
+
+    user32.GetWindowThreadProcessId.argtypes = [
+        wintypes.HWND,
+        ctypes.POINTER(wintypes.DWORD)
+    ]
+    user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+
+    def callback(hwnd, _):
+        if not user32.IsWindowVisible(hwnd):
+            return True
+
+        length = user32.GetWindowTextLengthW(hwnd)
+
+        if length <= 0:
+            return True
+
+        title_buffer = ctypes.create_unicode_buffer(length + 1)
+
+        user32.GetWindowTextW(
+            hwnd,
+            title_buffer,
+            length + 1
+        )
+
+        title = title_buffer.value.strip()
+
+        if not title:
+            return True
+
+        pid = wintypes.DWORD()
+
+        user32.GetWindowThreadProcessId(
+            hwnd,
+            ctypes.byref(pid)
+        )
+
+        windows.append({
+            "hwnd": int(hwnd),
+            "title": title,
+            "pid": pid.value,
+            "process": _get_process_name_by_pid(pid.value)
+        })
+
+        return True
+
+    callback_ref = enum_windows_proc(callback)
+    user32.EnumWindows(callback_ref, 0)
+
+    return windows
+
+
+def list_open_windows():
+    """List visible titled windows with their process IDs."""
+
+    windows = _get_open_windows()
+
+    if not windows:
+        return "No visible titled windows were found."
+
+    lines = ["Open windows:"]
+
+    for index, window in enumerate(windows, start=1):
+        lines.append(
+            f"{index}. {window['title']} "
+            f"| Process: {window['process']} "
+            f"| PID: {window['pid']}"
+        )
+
+    return "\n".join(lines)
+
+
+def close_window(title):
+    """Send WM_CLOSE to one uniquely matched window."""
+
+    if not isinstance(title, str) or not title.strip():
+        return "Please provide a window title."
+
+    title = title.strip().strip("\"'").strip()
+
+    if not title:
+        return "Please provide a window title."
+
+    windows = _get_open_windows()
+    target = title.casefold()
+
+    # Prefer exact matches over partial matches.
+    matches = [
+        window for window in windows
+        if window["title"].casefold() == target
+    ]
+
+    if not matches:
+        matches = [
+            window for window in windows
+            if target in window["title"].casefold()
+        ]
+
+    if not matches:
+        return f"No open window matched '{title}'."
+
+    if len(matches) > 1:
+        options = "\n".join(
+            f"- {window['title']} "
+            f"(Process: {window['process']}, PID: {window['pid']})"
+            for window in matches
+        )
+
+        return (
+            "Multiple windows matched. Please use a more specific "
+            "window title:\n" + options
+        )
+
+    window = matches[0]
+    user32 = ctypes.windll.user32
+
+    user32.PostMessageW.argtypes = [
+        wintypes.HWND,
+        wintypes.UINT,
+        wintypes.WPARAM,
+        wintypes.LPARAM
+    ]
+    user32.PostMessageW.restype = wintypes.BOOL
+
+    # WM_CLOSE asks the application to close normally.
+    WM_CLOSE = 0x0010
+
+    sent = user32.PostMessageW(
+        wintypes.HWND(window["hwnd"]),
+        WM_CLOSE,
+        0,
+        0
+    )
+
+    if not sent:
+        return (
+            f"Windows could not send a close request to "
+            f"'{window['title']}'."
+        )
+
+    return (
+        f"Close request sent to '{window['title']}' "
+        f"(PID: {window['pid']}). The application may ask "
+        "you to save changes or may decline the request."
+    )
 
 # ============================================================
 # SECTION 12 — CHECK IF PROCESS IS RUNNING
